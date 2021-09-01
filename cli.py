@@ -1,8 +1,10 @@
 import os
+import menu_functions as target
 
 
 class CLI:
     def __init__(self, props, variants, special_variants=None):
+        self.version = '0.02'
         self.build_in_commands = [
             {
                 'name': 'Clear screen',
@@ -149,15 +151,18 @@ class CLI:
 
     def print_header(self):
         info = f' {self.props["app_name"]} v{self.props["version"]} '
-        len_info = len(info)
-        z = (self.term_size // 2) - (len(info) // 2) - 1
-        f = self.term_size - (z + len_info + 1)
-        result = f'|{"#" * z}{info}{"#" * f}|'
-        return result
+        return self.print_center(info, '#')
 
     def print_bottom(self):
-        txt = 'CLI ver.0.01 by TwoCatsCanFly'
+        txt = f' CLI ver.{self.version} by TwoCatsCanFly '
+        return self.print_center(txt, '#')
+
+    def print_center(self, txt, outline):
         len_txt = len(txt)
+        z = (self.term_size // 2) - (len(txt) // 2) - 1
+        f = self.term_size - (z + len_txt + 1)
+        result = f'|{outline * z}{txt}{outline * f}|'
+        return result
 
     def cls(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -199,6 +204,7 @@ class CLI:
         menu += [self.print_header()]
         menu += [self.print_topline()]
         menu += self.print_variants()
+        menu += [self.print_bottom()]
         for i in menu:
             renderable += i
             renderable += '\n'
@@ -206,13 +212,12 @@ class CLI:
 
     def menu_print(self):
         print(self.menu)
-        print(self.choose())
 
 
 class Worker:
     def __init__(self):
         self.props = {
-            'version': 0.5,
+            'version': 0.1,
             'app_name': 'Test App',
             't_size': 115,
             'var_title_len': 30,
@@ -222,58 +227,55 @@ class Worker:
                 'name': 'Example',
                 'description': 'example thing',
                 'command': 'example_command'
-            },
-            {
-                'name': 'Example',
-                'description': 'example thing',
-                'command': 'example_command'
-            },
-            {
-                'name': 'Example',
-                'description': 'example thing',
-                'command': 'example_command'
-            },
-            {
-                'name': 'Example',
-                'description': 'example thing',
-                'command': 'example_command'
-            },
-            {
-                'name': 'Test',
-                'description': 'Test',
-                'command': 'test'
             }
         ]
         self.special_variants = [
             {
-                'name': 'Change dir',
-                'command': 'change_directory',
+                'name': 'Example Special',
+                'command': 'special_example',
                 'description': '',
-                'repr': 'cd'
+                'repr': 'se'
             }
         ]
-        # self.console_commands = ConsoleCommands()
-        # self.console_ui = ConsoleUI(self.version, self.console_commands, self.variants, self.special_variants)
-        # self.misc_functions = MiscFunctions(self.console_commands, self.console_ui)
-        # self.functions = MenuFunctions(self.console_commands, self.console_ui, self.misc_functions)
-        # self.user_input = UserInput()
-        # self.console_ui.print_full_menu()
-        # self.main_loop()
-        self.cli = CLI(self.props, self.variants)
+        self.cli = CLI(self.props, self.variants, self.special_variants)
         self.cli.menu_print()
+        self.main_loop()
+
+    def get_params(self):
+        app_version = 0.1
+        app_name = 'Test App'
+        t_size = 115
+        var_title_len = 30
+        variants = [
+            {
+                'name': 'Example',
+                'description': 'example thing',
+                'command': 'example_command'
+            }
+        ]
+        special_variants = [
+            {
+                'name': 'Example Special',
+                'command': 'special_example',
+                'description': '',
+                'repr': 'se'
+            }
+        ]
+
+
+
+
 
     def main_loop(self):
-        available = self.available_variants()
         while True:
-            var = self.choose(available)
+            var = self.cli.choose()
             try:
-                ev = eval(f'self.functions.{available[var]}()')
+                eval(f'target.{var}()')
             except Exception as err:
                 print(err)
-                ev = True
-            if ev:
-                self.console_ui.print_full_menu()
 
+# class SettingsGrabber:
+#
 
 if __name__ == '__main__':
     Worker()
