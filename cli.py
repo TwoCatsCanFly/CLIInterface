@@ -4,7 +4,7 @@ import menu_functions as target
 
 class CLI:
     def __init__(self, props, variants, special_variants=None):
-        self.version = '0.02'
+        self.version = '0.03'
         self.build_in_commands = [
             {
                 'name': 'Clear screen',
@@ -150,7 +150,7 @@ class CLI:
         return variants
 
     def print_header(self):
-        info = f' {self.props["app_name"]} v{self.props["version"]} '
+        info = f' {self.props["app_name"]} v{self.props["app_version"]} '
         return self.print_center(info, '#')
 
     def print_bottom(self):
@@ -216,54 +216,35 @@ class CLI:
 
 class Worker:
     def __init__(self):
+        self.grab = ParamsGrabber()
         self.props = {
-            'version': 0.1,
-            'app_name': 'Test App',
-            't_size': 115,
-            'var_title_len': 30,
+            'app_version': self.grab.from_target()['app_version'] or self.grab.default()['app_version'],
+            'app_name': self.grab.from_target()['app_name'] or self.grab.default()['app_name'],
+            't_size': self.grab.from_target()['t_size'] or self.grab.default()['t_size'],
+            'var_title_len': self.grab.from_target()['var_title_len'] or self.grab.default()['var_title_len'],
         }
-        self.variants = [
-            {
-                'name': 'Example',
-                'description': 'example thing',
-                'command': 'example_command'
-            }
-        ]
-        self.special_variants = [
-            {
-                'name': 'Example Special',
-                'command': 'special_example',
-                'description': '',
-                'repr': 'se'
-            }
-        ]
+        self.variants = self.grab.from_target()['variants'] or self.grab.default()['variants']
+        self.special_variants = self.grab.from_target()['special_variants'] or self.grab.default()['special_variants']
         self.cli = CLI(self.props, self.variants, self.special_variants)
         self.cli.menu_print()
+        self.params = self.list_of_params(self.variants, self.special_variants)
         self.main_loop()
 
-    def get_params(self):
-        app_version = 0.1
-        app_name = 'Test App'
-        t_size = 115
-        var_title_len = 30
-        variants = [
-            {
-                'name': 'Example',
-                'description': 'example thing',
-                'command': 'example_command'
+    def list_of_params(self,variants,special_variants):
+        list_params = {}
+        for i in variants:
+            list_params[i['command']] = {
+                'async': i['async'],
+                'menu_reprint': i['menu_reprint'],
+                'background': i['background'],
             }
-        ]
-        special_variants = [
-            {
-                'name': 'Example Special',
-                'command': 'special_example',
-                'description': '',
-                'repr': 'se'
+        for i in special_variants:
+            list_params[i['command']] = {
+                'async': i['async'],
+                'menu_reprint': i['menu_reprint'],
+                'background': i['background'],
             }
-        ]
-
-
-
+        return list_params
 
 
     def main_loop(self):
@@ -274,8 +255,39 @@ class Worker:
             except Exception as err:
                 print(err)
 
-# class SettingsGrabber:
-#
+
+class ParamsGrabber:
+    def default(self):
+        return {
+            'app_version': 0.1,
+            'app_name': 'Test App',
+            't_size': 115,
+            'var_title_len': 30,
+            'variants': [
+                {
+                    'name': 'Example',
+                    'description': 'example thing',
+                    'command': 'example_command',
+                    'async': False,
+                    'menu_reprint': False,
+                    'background': False,
+                }
+            ],
+            'special_variants': [
+                {
+                    'name': 'Example Special',
+                    'command': 'special_example',
+                    'description': '',
+                    'repr': 'se',
+                    'async': False,
+                    'menu_reprint': False,
+                    'background': False,
+                }
+            ]
+        }
+
+    def from_target(self):
+        return target.parameters or False
 
 if __name__ == '__main__':
     Worker()
