@@ -28,9 +28,9 @@ parameters = {
     ]
 }
 
-def example_command():
+def example_command(config):
     print('Hi, example_command')
 
 
-def special_example():
+def special_example(config):
     print('Hi, special_example')
