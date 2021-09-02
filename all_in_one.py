@@ -1,18 +1,79 @@
 import os
-import menu_functions as target
+from configparser import ConfigParser
+import threading
+import time
+
+
+class Controller:
+
+    def __init__(self):
+        self.ext = ExternalConfigs()
+        self.conf = self.ext.config
+        self.parameters = {
+            'app_version': 0.1,
+            'app_name': 'Test App',
+            't_size': 115,
+            'var_title_len': 30,
+            'variants': [
+                {
+                    'name': 'Example',
+                    'description': 'example thing',
+                    'command': 'example_command',
+                    'menu_reprint': False,
+                    'hide_menu': False,
+                    'background': False,
+                },
+                {
+                    'name': 'Example async',
+                    'description': 'example thing',
+                    'command': 'example_command_async',
+                    'menu_reprint': False,
+                    'hide_menu': False,
+                    'background': True,
+                }
+            ],
+            'special_variants': [
+                {
+                    'name': 'Example Special',
+                    'command': 'special_example',
+                    'description': '',
+                    'repr': 'se',
+                    'menu_reprint': False,
+                    'hide_menu': False,
+                    'background': False,
+                }
+            ]
+        }
+
+    def example_command(self):
+        print('Hi, example_command')
+        print(self.conf['App']['example'])
+
+    def example_command_async(self):
+        time.sleep(3)
+        print('Hi, example_command_async')
+        time.sleep(2)
+        print('Background task')
+        time.sleep(1)
+        print('Complete')
+        print(self.conf['App']['example'])
+
+    @staticmethod
+    def special_example():
+        print('Hi, special_example')
 
 
 class CLI:
     def __init__(self, props, variants, special_variants=None):
-        self.version = '0.03'
+        self.version = '0.05'
         self.build_in_commands = [
             {
                 'name': 'Clear screen',
                 'command': 'cls',
                 'description': 'Clear app screen',
                 'repr': 'cls',
-                'async': False,
                 'menu_reprint': False,
+                'hide_menu': False,
                 'background': False,
             },
             {
@@ -20,8 +81,8 @@ class CLI:
                 'command': 'quit',
                 'description': 'Exit app',
                 'repr': 'q',
-                'async': False,
                 'menu_reprint': False,
+                'hide_menu': False,
                 'background': False,
             }
         ]
@@ -164,8 +225,11 @@ class CLI:
         result = f'|{outline * z}{txt}{outline * f}|'
         return result
 
-    def cls(self):
+    def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+
+    def cls(self):
+        self.clear_screen()
         print(self.menu)
 
     @staticmethod
@@ -216,47 +280,62 @@ class CLI:
 
 class Worker:
     def __init__(self):
-        self.grab = ParamsGrabber()
+        self.controller = Controller()
         self.props = {
-            'app_version': self.grab.from_target()['app_version'] or self.grab.default()['app_version'],
-            'app_name': self.grab.from_target()['app_name'] or self.grab.default()['app_name'],
-            't_size': self.grab.from_target()['t_size'] or self.grab.default()['t_size'],
-            'var_title_len': self.grab.from_target()['var_title_len'] or self.grab.default()['var_title_len'],
+            'app_version': self.from_target()['app_version'] or self.default()['app_version'],
+            'app_name': self.from_target()['app_name'] or self.default()['app_name'],
+            't_size': self.from_target()['t_size'] or self.default()['t_size'],
+            'var_title_len': self.from_target()['var_title_len'] or self.default()['var_title_len'],
         }
-        self.variants = self.grab.from_target()['variants'] or self.grab.default()['variants']
-        self.special_variants = self.grab.from_target()['special_variants'] or self.grab.default()['special_variants']
+        self.variants = self.from_target()['variants'] or self.default()['variants']
+        self.special_variants = self.from_target()['special_variants'] or self.default()['special_variants']
         self.cli = CLI(self.props, self.variants, self.special_variants)
         self.cli.menu_print()
         self.params = self.list_of_params(self.variants, self.special_variants)
         self.main_loop()
 
-    def list_of_params(self,variants,special_variants):
+    def list_of_params(self, variants, special_variants):
         list_params = {}
         for i in variants:
             list_params[i['command']] = {
-                'async': i['async'],
                 'menu_reprint': i['menu_reprint'],
+                'hide_menu': i['hide_menu'],
                 'background': i['background'],
             }
         for i in special_variants:
             list_params[i['command']] = {
-                'async': i['async'],
                 'menu_reprint': i['menu_reprint'],
+                'hide_menu': i['hide_menu'],
                 'background': i['background'],
             }
         return list_params
 
+    def executor(self, command):
+        try:
+            list_of_params = self.params[command]
+            if list_of_params['hide_menu']:
+                self.cli.clear_screen()
+            if list_of_params['background']:
+                self.async_execution(command)
+            else:
+                self.regular_execution(command)
+            if list_of_params['hide_menu'] or list_of_params['menu_reprint']:
+                print(self.cli.menu)
+        except Exception as err:
+            print(err)
+
+    def regular_execution(self, command):
+        eval(f'self.controller.{command}()')
+
+    def async_execution(self, command):
+        thread = threading.Thread(target=self.regular_execution, args=[command])
+        thread.start()
 
     def main_loop(self):
         while True:
             var = self.cli.choose()
-            try:
-                eval(f'target.{var}()')
-            except Exception as err:
-                print(err)
+            self.executor(var)
 
-
-class ParamsGrabber:
     def default(self):
         return {
             'app_version': 0.1,
@@ -268,8 +347,8 @@ class ParamsGrabber:
                     'name': 'Example',
                     'description': 'example thing',
                     'command': 'example_command',
-                    'async': False,
                     'menu_reprint': False,
+                    'hide_menu': False,
                     'background': False,
                 }
             ],
@@ -279,15 +358,28 @@ class ParamsGrabber:
                     'command': 'special_example',
                     'description': '',
                     'repr': 'se',
-                    'async': False,
                     'menu_reprint': False,
+                    'hide_menu': False,
                     'background': False,
                 }
             ]
         }
 
     def from_target(self):
-        return target.parameters or False
+        return self.controller.parameters
+
+
+class ExternalConfigs:
+
+    def __init__(self):
+        self.config = self.external_settings()
+
+    def external_settings(self):
+        data = 'config.ini'
+        config = ConfigParser()
+        config.read(data)
+        return config
+
 
 if __name__ == '__main__':
     Worker()
