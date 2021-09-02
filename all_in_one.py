@@ -9,6 +9,7 @@ class Controller:
     def __init__(self):
         self.ext = ExternalConfigs()
         self.conf = self.ext.config
+        # Here you can add menu functions, and set app parameters
         self.parameters = {
             'app_version': 0.1,
             'app_name': 'Test App',
@@ -44,6 +45,8 @@ class Controller:
                 }
             ]
         }
+
+    # Here all you menu methods go
 
     def example_command(self):
         print('Hi, example_command')
